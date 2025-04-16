@@ -77,7 +77,7 @@ void (*bouncedfunc)(AP_Bounce) = nullptr;
 // Serverdata Management
 std::map<std::string,AP_DataType> map_serverdata_typemanage;
 AP_GetServerDataRequest resync_serverdata_request;
-size_t last_item_idx = 0;
+uint64_t last_item_idx = 0;
 
 // Gifting interop
 bool gifting_supported = false;
@@ -176,6 +176,7 @@ void AP_Init(const char* ip, const char* game, const char* player_name, const ch
             }
         }
     );
+    webSocket.enablePerMessageDeflate();
     webSocket.setPingInterval(45);
 
     AP_NetworkPlayer archipelago {
