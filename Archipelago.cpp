@@ -63,7 +63,11 @@ std::map<std::pair<std::string,int64_t>, std::string> map_item_id_name;
 // Data Sets
 std::set<int> teams_set;
 
+// imported from satisfactory
 extern void log(std::string message);
+extern void satisfactory_parse_response(Json::Value& packet, std::string command);
+extern void satisfactory_Shutdown();
+//
 
 // Callback function pointers
 void (*resetItemValues)();
@@ -251,6 +255,8 @@ void AP_Start() {
 }
 
 void AP_Shutdown() {
+    satisfactory_Shutdown();
+
     if (multiworld)
         webSocket.stop();
 
@@ -698,6 +704,9 @@ bool parse_response(std::string msg, std::string &request) {
     reader.parse(msg, root);
     for (unsigned int i = 0; i < root.size(); i++) {
         std::string cmd = root[i]["cmd"].asString();
+
+        satisfactory_parse_response(root[i], cmd);
+
         if (cmd == "RoomInfo") {
             lib_room_info.version.major = root[i]["version"]["major"].asInt();
             lib_room_info.version.minor = root[i]["version"]["minor"].asInt();
