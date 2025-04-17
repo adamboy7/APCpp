@@ -3,6 +3,7 @@
 
 #include <set>
 #include <iostream>
+#include <json/value.h>
 
 //imports from apcpp
 extern int ap_player_team;
@@ -45,14 +46,15 @@ std::vector<std::pair<int,std::string>> AP_GetAllPlayers() {
 }
 
 void satisfactory_parse_response(Json::Value& packet, std::string command){
-    if (cmd == "Connected") {
+    if (command == "Connected") {
         unsigned int checked_size = packet["checked_locations"].size();
+        unsigned int missing_size = packet["missing_locations"].size();
 
-        all_locations.resize(checked_size + packet["missing_locations"].size())
+        all_locations.resize(checked_size + missing_size);
 
-        for (unsigned int i = 0; i < packet["checked_locations"].size(); i++)
+        for (unsigned int i = 0; i < checked_size; i++)
             all_locations[i] = packet["checked_locations"][i].asInt64();
-        for (unsigned int i = 0; i < packet["missing_locations"].size(); i++)
+        for (unsigned int i = 0; i < missing_size; i++)
             all_locations[checked_size + i] = packet["missing_locations"][i].asInt64();
     }
 }
