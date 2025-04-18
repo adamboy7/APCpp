@@ -72,7 +72,8 @@ extern void satisfactory_Shutdown();
 // Callback function pointers
 void (*resetItemValues)();
 void (*getitemfunc)(int64_t,bool,bool);
-void (*checklocfunc)(int64_t);
+//void (*checklocfunc)(int64_t);
+std::function<void(int64_t)>  checklocfunc;
 void (*locinfofunc)(std::vector<AP_NetworkItem>) = nullptr;
 void (*recvdeath)(std::string, std::string) = nullptr;
 void (*setreplyfunc)(AP_SetReply) = nullptr;
@@ -436,7 +437,7 @@ void AP_SetItemRecvCallback(void (*f_itemrecv)(int64_t,bool,bool)) {
     getitemfunc = f_itemrecv;
 }
 
-void AP_SetLocationCheckedCallback(void (*f_loccheckrecv)(int64_t)) {
+void AP_SetLocationCheckedCallback(std::function<void(int64_t)> f_loccheckrecv) {
     checklocfunc = f_loccheckrecv;
 }
 
@@ -759,7 +760,7 @@ bool parse_response(std::string msg, std::string &request) {
             for (unsigned int j = 0; j < root[i]["checked_locations"].size(); j++) {
                 //Sync checks with server
                 int64_t loc_id = root[i]["checked_locations"][j].asInt64();
-                (*checklocfunc)(loc_id);
+                checklocfunc(loc_id);
             }
             for (unsigned int j = 0; j < root[i]["players"].size(); j++) {
                 AP_NetworkPlayer player = {
@@ -1010,7 +1011,7 @@ bool parse_response(std::string msg, std::string &request) {
             //Sync checks with server
             for (unsigned int j = 0; j < root[i]["checked_locations"].size(); j++) {
                 int64_t loc_id = root[i]["checked_locations"][j].asInt64();
-                (*checklocfunc)(loc_id);
+                checklocfunc(loc_id);
             }
             //Update Player aliases if present
             for (auto itr : root[i].get("players", Json::arrayValue)) {
