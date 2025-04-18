@@ -59,11 +59,11 @@ void satisfactory_parse_response(Json::Value& packet, std::string command){
     }
 }
 
-void (*log_external)(std::string) = nullptr;
-void AP_SetLoggingCallback(void (*f_log)(std::string)) {
+std::function<void(std::string)> log_external = nullptr;
+void AP_SetLoggingCallback(std::function<void(std::string)> f_log) {
     log_external = f_log;
 }
 void log(std::string message) {
-    if (log_external != nullptr)
+    if (log_external)
         log_external(message);
 }
