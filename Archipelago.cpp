@@ -70,14 +70,13 @@ extern void satisfactory_Shutdown();
 //
 
 // Callback function pointers
-void (*resetItemValues)();
-void (*getitemfunc)(int64_t,bool,bool);
-//void (*checklocfunc)(int64_t);
-std::function<void(int64_t)>  checklocfunc;
-void (*locinfofunc)(std::vector<AP_NetworkItem>) = nullptr;
-void (*recvdeath)(std::string, std::string) = nullptr;
-void (*setreplyfunc)(AP_SetReply) = nullptr;
-void (*bouncedfunc)(AP_Bounce) = nullptr;
+std::function<void()> resetItemValues = nullptr;
+std::function<void(int64_t,bool,bool)> getitemfunc = nullptr;
+std::function<void(int64_t)> checklocfunc = nullptr;
+std::function<void(std::vector<AP_NetworkItem>)> locinfofunc = nullptr;
+std::function<void(std::string, std::string)> recvdeath = nullptr;
+std::function<void(AP_SetReply)> setreplyfunc = nullptr;
+std::function<void(AP_Bounce)> bouncedfunc = nullptr;
 
 // Serverdata Management
 std::map<std::string,AP_DataType> map_serverdata_typemanage;
@@ -101,9 +100,9 @@ std::map<std::string, AP_GetServerDataRequest*> map_server_data;
 std::queue<std::pair<Json::Value,AP_RequestStatus*>> queue_server_data;
 
 //Slot Data Stuff
-std::map<std::string, void (*)(int)> map_slotdata_callback_int;
-std::map<std::string, void (*)(std::string)> map_slotdata_callback_raw;
-std::map<std::string, void (*)(std::map<int,int>)> map_slotdata_callback_mapintint;
+std::map<std::string, std::function<void(int)>> map_slotdata_callback_int;
+std::map<std::string, std::function<void(std::string)>> map_slotdata_callback_raw;
+std::map<std::string, std::function<void(std::map<int,int>)>> map_slotdata_callback_mapintint;
 std::vector<std::string> slotdata_strings;
 
 // Datapackage Stuff
@@ -429,37 +428,36 @@ void AP_EnableQueueItemRecvMsgs(bool b) {
     queueitemrecvmsg = b;
 }
 
-void AP_SetItemClearCallback(void (*f_itemclr)()) {
+void AP_SetItemClearCallback(std::function<void()> f_itemclr) {
     resetItemValues = f_itemclr;
 }
 
-void AP_SetItemRecvCallback(void (*f_itemrecv)(int64_t,bool,bool)) {
+void AP_SetItemRecvCallback(std::function<void(int64_t,bool,bool)> f_itemrecv) {
     getitemfunc = f_itemrecv;
 }
 
-void AP_SetLocationCheckedCallback(std::function<void(int64_t)> f_loccheckrecv) {
-    checklocfunc = f_loccheckrecv;
-}
+void AP_SetLocationCheckedCallback(std::function<void(int64_t)> f_locrecv) {
+    checklocfunc = f_locrecv;}
 
-void AP_SetLocationInfoCallback(void (*f_locinfrecv)(std::vector<AP_NetworkItem>)) {
+void AP_SetLocationInfoCallback(std::function<void(std::vector<AP_NetworkItem>)> f_locinfrecv) {
     locinfofunc = f_locinfrecv;
 }
 
-void AP_SetDeathLinkRecvCallback(void (*f_deathrecv)(std::string,std::string)) {
+void AP_SetDeathLinkRecvCallback(std::function<void(std::string,std::string)> f_deathrecv) {
     recvdeath = f_deathrecv;
 }
 
-void AP_RegisterSlotDataIntCallback(std::string key, void (*f_slotdata)(int)) {
+void AP_RegisterSlotDataIntCallback(std::string key, std::function<void(int)> f_slotdata) {
     map_slotdata_callback_int[key] = f_slotdata;
     slotdata_strings.push_back(key);
 }
 
-void AP_RegisterSlotDataRawCallback(std::string key, void (*f_slotdata)(std::string)) {
+void AP_RegisterSlotDataRawCallback(std::string key, std::function<void(std::string)> f_slotdata) {
     map_slotdata_callback_raw[key] = f_slotdata;
     slotdata_strings.push_back(key);
 }
 
-void AP_RegisterSlotDataMapIntIntCallback(std::string key, void (*f_slotdata)(std::map<int,int>)) {
+void AP_RegisterSlotDataMapIntIntCallback(std::string key, std::function<void(std::map<int,int>)> f_slotdata) {
     map_slotdata_callback_mapintint[key] = f_slotdata;
     slotdata_strings.push_back(key);
 }
@@ -584,7 +582,7 @@ void AP_SetServerData(AP_SetServerDataRequest* request) {
     AP_CommitServerData();
 }
 
-void AP_RegisterSetReplyCallback(void (*f_setreply)(AP_SetReply)) {
+void AP_RegisterSetReplyCallback(std::function<void(AP_SetReply)> f_setreply) {
     setreplyfunc = f_setreply;
 }
 
@@ -685,7 +683,7 @@ void AP_SendBounce(AP_Bounce bounce) {
     APSend(writer.write(req_t));
 }
 
-void AP_RegisterBouncedCallback(void (*f_bounced)(AP_Bounce)) {
+void AP_RegisterBouncedCallback(std::function<void(AP_Bounce)> f_bounced) {
     bouncedfunc = f_bounced;
 }
 
@@ -755,7 +753,7 @@ bool parse_response(std::string msg, std::string &request) {
             printf("AP: Authenticated\n");
             ap_player_id = root[i]["slot"].asInt(); // MUST be called before resetitemvalues, otherwise PrivateServerDataPrefix, GetPlayerID return broken values!
             ap_player_team = root[i]["team"].asInt();
-            (*resetItemValues)();
+            resetItemValues();
 
             for (unsigned int j = 0; j < root[i]["checked_locations"].size(); j++) {
                 //Sync checks with server
@@ -792,15 +790,15 @@ bool parse_response(std::string msg, std::string &request) {
             cur_deathlink_amnesty = deathlink_amnesty;
             for (std::string key : slotdata_strings) {
                 if (map_slotdata_callback_int.count(key)) {
-                    (*map_slotdata_callback_int.at(key))(root[i]["slot_data"][key].asInt());
+                    map_slotdata_callback_int.at(key)(root[i]["slot_data"][key].asInt());
                 } else if (map_slotdata_callback_raw.count(key)) {
-                    (*map_slotdata_callback_raw.at(key))(writer.write(root[i]["slot_data"][key]));
+                    map_slotdata_callback_raw.at(key)(writer.write(root[i]["slot_data"][key]));
                 } else if (map_slotdata_callback_mapintint.count(key)) {
                     std::map<int,int> out;
                     for (auto itr : root[i]["slot_data"][key].getMemberNames()) {
                         out[std::stoi(itr)] = root[i]["slot_data"][key][itr.c_str()].asInt();
                     }
-                    (*map_slotdata_callback_mapintint.at(key))(out);
+                    map_slotdata_callback_mapintint.at(key)(out);
                 }
             }
 
@@ -914,7 +912,7 @@ bool parse_response(std::string msg, std::string &request) {
                         setreply.original_value = &raw_orig_val;
                         break;
                 }
-                (*setreplyfunc)(setreply);
+                setreplyfunc(setreply);
             }
         } else if (cmd == "PrintJSON") {
             const std::string printType = root[i].get("type","").asString();
@@ -983,7 +981,7 @@ bool parse_response(std::string msg, std::string &request) {
                 int64_t item_id = root[i]["items"][j]["item"].asInt64();
                 notify = (item_idx == 0 && last_item_idx <= j && multiworld) || item_idx != 0;
                 bool isFromServer = root[i]["items"][j]["location"].asInt64() < 0;
-                (*getitemfunc)(item_id, notify, isFromServer);
+                getitemfunc(item_id, notify, isFromServer);
                 if (queueitemrecvmsg && notify) {
                     AP_ItemRecvMessage* msg = new AP_ItemRecvMessage;
                     AP_NetworkPlayer sender = getPlayer(0, root[i]["items"][j]["player"].asInt());
@@ -1023,18 +1021,19 @@ bool parse_response(std::string msg, std::string &request) {
             printf("AP: Archipelago Server has refused connection. Check Password / Name / IP and restart the Game.\n");
             fflush(stdout);
         } else if (cmd == "Bounced") {
-            if (!enable_deathlink && bouncedfunc == nullptr) continue;
-            if (bouncedfunc == nullptr) {
+            if (!enable_deathlink && !bouncedfunc) continue;
+            if (!bouncedfunc) {
                 // Only do native DeathLink handling, client is not interested in bounce packets
                 for (unsigned int j = 0; j < root[i]["tags"].size(); j++) {
                     if (root[i]["tags"][j].asString() == "DeathLink") {
                         // Suspicions confirmed ;-; But maybe we died, not them?
                         if (root[i]["data"]["source"].asString() == ap_player_name) break; // We already paid our penance
                         deathlinkstat = true;
-                        std::string source = root[i]["data"]["source"].asString();
-                        std::string cause = root[i]["data"]["cause"].isNull() ? "" : root[i]["data"]["cause"].asString();
-                        if (recvdeath != nullptr) {
-                            (*recvdeath)(source, cause);
+                        if (recvdeath) {
+                        	std::string source = root[i]["data"]["source"].asString();
+                        	std::string cause = root[i]["data"]["cause"].isNull() ? "" : root[i]["data"]["cause"].asString();
+
+                            recvdeath(source, cause);
                         }
                         break;
                     }
@@ -1058,7 +1057,7 @@ bool parse_response(std::string msg, std::string &request) {
                 #undef ADD_TARGETS
 
                 bounce.data = writer.write(root[i]["data"]);
-                (*bouncedfunc)(bounce);
+                bouncedfunc(bounce);
             }
             
         }
