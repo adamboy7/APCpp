@@ -699,7 +699,6 @@ void AP_Init_Generic() {
     datapkg_cache_file.close();
 }
 
-//#pragma optimize("", off)
 bool parse_response(std::string msg, std::string &request) {
     log("RECEIVED: \""+ msg +"\"");
     Json::Value root;
@@ -895,6 +894,8 @@ bool parse_response(std::string msg, std::string &request) {
                 std::string raw_orig_val;
                 AP_SetReply setreply;
                 setreply.key = root[i]["key"].asString();
+                setreply.raw = &msg;
+                setreply.slot = root[i]["slot"].asInt(); 
                 switch (map_serverdata_typemanage[setreply.key]) {
                     case AP_DataType::Int:
                         int_val = root[i]["value"].asInt();
@@ -1067,7 +1068,6 @@ bool parse_response(std::string msg, std::string &request) {
     }
     return false;
 }
-//#pragma optimize("", on)
 
 void APSend(std::string req) {
     log("SEND: " + req);

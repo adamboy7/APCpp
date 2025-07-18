@@ -63,6 +63,7 @@ std::function<void(std::string)> log_external = nullptr;
 void AP_SetLoggingCallback(std::function<void(std::string)> f_log) {
     log_external = f_log;
 }
+
 void log(std::string message) {
     if (log_external)
         log_external(message);
