@@ -84,13 +84,13 @@ AP_RequestStatus AP_SetGiftBoxProperties(AP_GiftBoxProperties props) {
 }
 
 std::map<std::pair<int,std::string>,AP_GiftBoxProperties> AP_QueryGiftBoxes() {
-    std::scoped_lock lock(map_players_to_giftbox_mutex);
+    std::lock_guard lock(map_players_to_giftbox_mutex);
     return map_players_to_giftbox;
 }
 
 // Get currently available Gifts in own gift box
 std::vector<AP_Gift> AP_CheckGifts() {
-    std::scoped_lock lock(cur_gifts_available_mutex);
+    std::lock_guard lock(cur_gifts_available_mutex);
     return cur_gifts_available;
 }
 
@@ -206,7 +206,7 @@ void AP_SetGiftingSupported(bool enabled){
 AP_GiftBoxProperties getLocalGiftBoxProperties(){
     std::pair<int,std::string> localGiftbox = {ap_player_team,getPlayer(ap_player_team, AP_GetPlayerID()).name};
 
-    std::scoped_lock lock(map_players_to_giftbox_mutex);
+    std::lock_guard lock(map_players_to_giftbox_mutex);
 
     if (map_players_to_giftbox.count(localGiftbox) > 0)
         return map_players_to_giftbox[localGiftbox];
@@ -220,7 +220,7 @@ AP_GiftBoxProperties getLocalGiftBoxProperties(){
 bool hasOpenGiftBox(int team, std::string player){
     std::pair<int,std::string> giftTarget = {team, player};
 
-    std::scoped_lock lock(map_players_to_giftbox_mutex);
+    std::lock_guard lock(map_players_to_giftbox_mutex);
     return map_players_to_giftbox.count(giftTarget) 
         && map_players_to_giftbox[giftTarget].IsOpen == true;
 }
@@ -305,7 +305,7 @@ void handleGiftAPISetReply(const AP_SetReply& reply) {
             }
         }
 
-        std::scoped_lock lock(cur_gifts_available_mutex);
+        std::lock_guard lock(cur_gifts_available_mutex);
         cur_gifts_available.clear();
         for (const std::pair<std::string, AP_Gift>& gift : gifts) {
             cur_gifts_available.push_back(gift.second);
@@ -315,7 +315,7 @@ void handleGiftAPISetReply(const AP_SetReply& reply) {
         Json::Value json_data;
         reader.parse(*(std::string*)reply.value, json_data);
 
-        std::scoped_lock lock(map_players_to_giftbox_mutex);
+        std::lock_guard lock(map_players_to_giftbox_mutex);
         map_players_to_giftbox.clear();
 
         for(std::string motherbox_slot : json_data.getMemberNames()) {

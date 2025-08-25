@@ -1,4 +1,4 @@
-# APCpp
+ APCpp
 C++ Library for Clients interfacing with the [Archipelago Multi-Game Randomizer](https://archipelago.gg)
 
 # Usage
@@ -68,4 +68,10 @@ Clone the Repo recursively!
 - Create a folder `build`
 - Enter the folder
 - `cmake .. -DWIN32=1` (If on MinGW, also add `-DMINGW=1`)
+- `cmake --build .`
+
+# Building for linux under windows using UBT
+- Create a folder `build-linux`
+- `cd build-linux`
+- `cmake .. -DCMAKE_TOOLCHAIN_FILE=unreal-crosscompile.cmake -DUSE_MBED_TLS=1 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -G Ninja`
 - `cmake --build .`

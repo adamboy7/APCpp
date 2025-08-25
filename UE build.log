@@ -1,0 +1,85 @@
+T:\Git\APCpp\build_linux>cmake --build .
+[115/191] Building CXX object CMakeFiles/APCpp-static.dir/Archipelago_Gifting.cpp.o
+FAILED: CMakeFiles/APCpp-static.dir/Archipelago_Gifting.cpp.o
+C:\UnrealToolchains\v22_clang-16.0.6-centos7\x86_64-unknown-linux-gnu\bin\clang++.exe --target=x86_64-unknown-linux-gnu --sysroot=C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu -DIXWEBSOCKET_USE_MBED_TLS -DIXWEBSOCKET_USE_TLS -DIXWEBSOCKET_USE_ZLIB -IT:/Git/APCpp/IXWebSocket -IT:/Git/APCpp/jsoncpp/include -IT:/Git/APCpp/build_linux/mbedtls-3.6.2/include -IT:/Git/APCpp/jsoncpp/src/lib_json/../../include -std=gnu++17 -MD -MT CMakeFiles/APCpp-static.dir/Archipelago_Gifting.cpp.o -MF CMakeFiles\APCpp-static.dir\Archipelago_Gifting.cpp.o.d -o CMakeFiles/APCpp-static.dir/Archipelago_Gifting.cpp.o -c T:/Git/APCpp/Archipelago_Gifting.cpp
+T:/Git/APCpp/Archipelago_Gifting.cpp:87:21: error: expected ';' after expression
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+                    ^
+                    ;
+T:/Git/APCpp/Archipelago_Gifting.cpp:87:10: error: no member named 'scoped_lock' in namespace 'std'
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+    ~~~~~^
+T:/Git/APCpp/Archipelago_Gifting.cpp:87:22: error: no matching function for call to 'lock'
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+                     ^~~~
+C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/../../../../include/c++/4.8.5\mutex:708:5: note: candidate function template not viable: requires at least 2 arguments, but 1 was provided
+    lock(_L1& __l1, _L2& __l2, _L3&... __l3)
+    ^
+T:/Git/APCpp/Archipelago_Gifting.cpp:93:21: error: expected ';' after expression
+    std::scoped_lock lock(cur_gifts_available_mutex);
+                    ^
+                    ;
+T:/Git/APCpp/Archipelago_Gifting.cpp:93:10: error: no member named 'scoped_lock' in namespace 'std'
+    std::scoped_lock lock(cur_gifts_available_mutex);
+    ~~~~~^
+T:/Git/APCpp/Archipelago_Gifting.cpp:93:22: error: no matching function for call to 'lock'
+    std::scoped_lock lock(cur_gifts_available_mutex);
+                     ^~~~
+C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/../../../../include/c++/4.8.5\mutex:708:5: note: candidate function template not viable: requires at least 2 arguments, but 1 was provided
+    lock(_L1& __l1, _L2& __l2, _L3&... __l3)
+    ^
+T:/Git/APCpp/Archipelago_Gifting.cpp:209:21: error: expected ';' after expression
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+                    ^
+                    ;
+T:/Git/APCpp/Archipelago_Gifting.cpp:209:10: error: no member named 'scoped_lock' in namespace 'std'
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+    ~~~~~^
+T:/Git/APCpp/Archipelago_Gifting.cpp:209:22: error: no matching function for call to 'lock'
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+                     ^~~~
+C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/../../../../include/c++/4.8.5\mutex:708:5: note: candidate function template not viable: requires at least 2 arguments, but 1 was provided
+    lock(_L1& __l1, _L2& __l2, _L3&... __l3)
+    ^
+T:/Git/APCpp/Archipelago_Gifting.cpp:223:21: error: expected ';' after expression
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+                    ^
+                    ;
+T:/Git/APCpp/Archipelago_Gifting.cpp:223:10: error: no member named 'scoped_lock' in namespace 'std'
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+    ~~~~~^
+T:/Git/APCpp/Archipelago_Gifting.cpp:223:22: error: no matching function for call to 'lock'
+    std::scoped_lock lock(map_players_to_giftbox_mutex);
+                     ^~~~
+C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/../../../../include/c++/4.8.5\mutex:708:5: note: candidate function template not viable: requires at least 2 arguments, but 1 was provided
+    lock(_L1& __l1, _L2& __l2, _L3&... __l3)
+    ^
+T:/Git/APCpp/Archipelago_Gifting.cpp:308:25: error: expected ';' after expression
+        std::scoped_lock lock(cur_gifts_available_mutex);
+                        ^
+                        ;
+T:/Git/APCpp/Archipelago_Gifting.cpp:308:14: error: no member named 'scoped_lock' in namespace 'std'
+        std::scoped_lock lock(cur_gifts_available_mutex);
+        ~~~~~^
+T:/Git/APCpp/Archipelago_Gifting.cpp:308:26: error: no matching function for call to 'lock'
+        std::scoped_lock lock(cur_gifts_available_mutex);
+                         ^~~~
+C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/../../../../include/c++/4.8.5\mutex:708:5: note: candidate function template not viable: requires at least 2 arguments, but 1 was provided
+    lock(_L1& __l1, _L2& __l2, _L3&... __l3)
+    ^
+T:/Git/APCpp/Archipelago_Gifting.cpp:318:25: error: expected ';' after expression
+        std::scoped_lock lock(map_players_to_giftbox_mutex);
+                        ^
+                        ;
+T:/Git/APCpp/Archipelago_Gifting.cpp:318:14: error: no member named 'scoped_lock' in namespace 'std'
+        std::scoped_lock lock(map_players_to_giftbox_mutex);
+        ~~~~~^
+T:/Git/APCpp/Archipelago_Gifting.cpp:318:26: error: no matching function for call to 'lock'
+        std::scoped_lock lock(map_players_to_giftbox_mutex);
+                         ^~~~
+C:/UnrealToolchains/v22_clang-16.0.6-centos7/x86_64-unknown-linux-gnu/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/../../../../include/c++/4.8.5\mutex:708:5: note: candidate function template not viable: requires at least 2 arguments, but 1 was provided
+    lock(_L1& __l1, _L2& __l2, _L3&... __l3)
+    ^
+18 errors generated.
+[122/191] Building CXX object CMakeFiles/APCpp-static.dir/Archipelago.cpp.o
+ninja: build stopped: subcommand failed.
