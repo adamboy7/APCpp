@@ -26,7 +26,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 set(CMAKE_SYSROOT "${CLANG_TOOLCHAIN_ROOT}")
-set(CMAKE_C_FLAGS_INIT   " --target=${LINUX_ARCH_NAME} --sysroot=${CLANG_TOOLCHAIN_ROOT} -fno-math-errno -fno-rtti -fno-exceptions -fdiagnostics-format=msvc -funwind-tables -gdwarf-3 -nodefaultlibs -LThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/ ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/ ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/libc++abi.a")
+set(CMAKE_C_FLAGS_INIT   " --target=${LINUX_ARCH_NAME} --sysroot=${CLANG_TOOLCHAIN_ROOT} -fno-math-errno -fno-rtti -fno-exceptions -fdiagnostics-format=msvc -funwind-tables -gdwarf-3  -nodefaultlibs -L \"C:/Program Files/Unreal Engine - CSS/Engine/Source/ThirdParty/Unix/LibCxx/include/c++/v1\" -lm -lc -lpthread -lgcc_s -lgcc")
 set(FLAGS_DEBUG          " -O0 -g -D_DEBUG")
 set(FLAGS_MINSIZEREL     " -Os -DNDEBUG")
 set(FLAGS_RELEASE        " -O3 -DNDEBUG")
