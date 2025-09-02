@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(APCpp)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -13,7 +13,6 @@ add_library(APCpp STATIC
     Archipelago_Satisfactory.cpp
     Archipelago.h 
     Archipelago_Satisfactory.h)
-add_library(APCpp STATIC Archipelago.cpp Archipelago.h)
 
 set_target_properties(APCpp PROPERTIES PUBLIC_HEADER Archipelago.h)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
