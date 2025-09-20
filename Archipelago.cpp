@@ -747,6 +747,7 @@ bool parse_response(std::string msg, std::string &request) {
                 req_t[0]["version"]["build"] = client_version.build;
                 req_t[0]["version"]["class"] = "Version";
                 req_t[0]["items_handling"] = 7; // Full Remote
+                req_t[0]["slot_data"] = false;
                 request = writer.write(req_t);
                 return true;
             }
