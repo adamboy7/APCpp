@@ -7,6 +7,7 @@
 
 //imports from apcpp
 extern int ap_player_team;
+extern int ap_player_id;
 extern std::set<int> teams_set;
 extern std::map<int, AP_NetworkPlayer> map_players;
 
@@ -67,4 +68,32 @@ void AP_SetLoggingCallback(std::function<void(std::string)> f_log) {
 void log(std::string message) {
     if (log_external)
         log_external(message);
+}
+
+// global var wont go out of scope on function boundry end
+std::string slot_data;
+std::string AP_GetSlotData() {
+    AP_GetServerDataRequest request;
+    request.key = "_read_slot_data_" + std::to_string(ap_player_id);
+    request.value = &slot_data;
+    request.type = AP_DataType::Raw;
+
+    AP_GetServerData(&request);
+
+    while (request.status == AP_RequestStatus::Pending && AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+        //wait
+    }
+
+    if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated){
+        log("not connected returning empty string");
+        return "";
+    } 
+
+    if (request.status != AP_RequestStatus::Done) {
+        log("returning empty string as request didnt complete");
+        return "";
+    } else {
+        //slot_data = *(std::string*)request.value;
+        return slot_data;
+    }
 }
