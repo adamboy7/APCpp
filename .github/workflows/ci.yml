@@ -69,7 +69,7 @@ jobs:
           path: artifact/**
 
   build-msys:
-    name: Build (MSYS check)
+    name: Build (MSYS)
     runs-on: windows-latest
     defaults:
       run:
