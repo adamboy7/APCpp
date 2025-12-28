@@ -5,8 +5,16 @@ on: [push, pull_request]
 
 jobs:
   build-win:
-    name: Build (windows-latest)
+    name: Build (windows-latest, ${{ matrix.kind }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: static
+            shared: OFF
+          - kind: shared
+            shared: ON
     steps:
     - uses: actions/checkout@v4
       with:
@@ -16,20 +24,29 @@ jobs:
         mkdir build
         cd build
         cmake -G "Visual Studio 17 2022" -A Win32 `
-              -DCMAKE_BUILD_TYPE=Release ..
+              -DCMAKE_BUILD_TYPE=Release `
+              -DAPCPP_BUILD_SHARED=${{ matrix.shared }} ..
     - name: Build (default version)
       run: |
         cd build
         cmake --build . --config Release
     - name: Create Artifact Folder
+      shell: pwsh
       run: |
-        mkdir artifact
-        copy build/Release/APCpp.dll artifact
-        copy build/Release/APCpp.lib artifact
+        New-Item -ItemType Directory -Force artifact | Out-Null
+        Copy-Item build/Release/APCpp.lib artifact -Force
+        if ("${{ matrix.shared }}" -eq "ON") {
+          $dll = Get-ChildItem -Path build -Recurse -File -Filter "APCpp.dll" |
+            Where-Object { $_.FullName -match "\\Release\\" } |
+            Select-Object -First 1
+          if (-not $dll) { throw "APCpp.dll not found under build/ (shared build requested)." }
+          Copy-Item $dll.FullName artifact -Force
+        }
     - name: Create Build Artifact
+
       uses: actions/upload-artifact@v4
       with:
-        name: APCpp-win
+        name: APCpp-win-${{ matrix.kind }}
         path: |
           artifact/*
 
