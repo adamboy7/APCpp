@@ -1,3 +1,98 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-win:
+    name: Build (windows-latest, ${{ matrix.kind }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: static
+            shared: OFF
+          - kind: shared
+            shared: ON
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: CMake configure (MSVC)
+        run: |
+          mkdir build
+          cd build
+          cmake -G "Visual Studio 17 2022" -A Win32 `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DAPCPP_BUILD_SHARED=${{ matrix.shared }} ..
+
+      - name: Build (MSVC)
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      - name: Create Artifact Folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          New-Item -ItemType Directory -Force artifact/mbedtls | Out-Null
+
+          # --- APCpp output ---
+          Copy-Item build/Release/APCpp.lib artifact -Force
+          if ("${{ matrix.shared }}" -eq "ON") {
+            $dll = Get-ChildItem -Path build -Recurse -File -Filter "APCpp.dll" |
+              Where-Object { $_.FullName -match "\\Release\\" } |
+              Select-Object -First 1
+            if (-not $dll) { throw "APCpp.dll not found under build/ (shared build requested)." }
+            Copy-Item $dll.FullName artifact -Force
+          }
+
+          # --- mbedTLS outputs ---
+          $mbeds = Get-ChildItem -Path build -Recurse -File -Include "mbedtls*.lib","mbedx509*.lib","mbedcrypto*.lib" |
+            Where-Object { $_.FullName -match "\\Release\\" } |
+            Select-Object -Unique
+          foreach ($f in $mbeds) { Copy-Item $f.FullName artifact/mbedtls -Force }
+
+          # --- Extra dependency libs for SatisfactoryArchipelagoMod ---
+          # (IXWebSocket, JsonCpp, zlib, etc.)
+          $extras = Get-ChildItem -Path build -Recurse -File -Include "ixwebsocket*.lib","jsoncpp*.lib","jsoncpp_object*.lib","zlib*.lib","zs*.lib" |
+            Where-Object { $_.FullName -match "\\Release\\" } |
+            Select-Object -Unique
+          foreach ($f in $extras) { Copy-Item $f.FullName artifact -Force }
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: APCpp-win-${{ matrix.kind }}
+          path: artifact/**
+
+  build-msys:
+    name: Build (MSYS check)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: git mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake unzip make
+      - name: CMake configure (MSYS)
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DWIN32=1 -DMSYS=1 -G"MSYS Makefiles"
+      - name: Build (MSYS)
+        run: |
+          cd build
+          cmake --build .
+
   build-linux:
     name: Build (Linux, ${{ matrix.kind }})
     runs-on: ubuntu-latest
@@ -23,19 +118,17 @@
         run: |
           mkdir -p build
           cd build
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DAPCPP_BUILD_SHARED=${{ matrix.shared }} \
-            -DUSE_MBED_TLS=ON
+          cmake ..             -DCMAKE_BUILD_TYPE=Release             -DAPCPP_BUILD_SHARED=${{ matrix.shared }}             -DUSE_MBED_TLS=ON
 
       - name: Build
         run: |
           cd build
-          cmake --build . --config Release
+          cmake --build .
 
       - name: Create Artifact Folder
         run: |
           set -euo pipefail
+          mkdir -p artifact
           mkdir -p artifact/mbedtls
 
           if [ "${{ matrix.shared }}" = "OFF" ]; then
@@ -47,30 +140,19 @@
             fi
 
             # --- mbedTLS static libs ---
-            find build -type f \( -name "libmbedtls*.a" -o -name "libmbedx509*.a" -o -name "libmbedcrypto*.a" \) \
-              -print -exec cp {} artifact/mbedtls/ \;
+            find build -type f \( -name "libmbedtls*.a" -o -name "libmbedx509*.a" -o -name "libmbedcrypto*.a" \)               -print -exec cp {} artifact/mbedtls/ \;
 
             # --- Extra dependency libs (static) ---
-            find build -type f \( -name "libixwebsocket*.a" -o -name "libjsoncpp*.a" -o -name "libz*.a" -o -name "libzlib*.a" \) \
-              -print -exec cp {} artifact/ \;
+            find build -type f \( -name "libixwebsocket*.a" -o -name "libjsoncpp*.a" -o -name "libz*.a" -o -name "libzlib*.a" \)               -print -exec cp {} artifact/ \;
 
           else
             # --- APCpp (shared) ---
-            # Capture libAPCpp.so plus any symlinked version files if present.
             find build -maxdepth 5 -type f -name "libAPCpp.so*" -print -exec cp -P {} artifact/ \;
 
-            # Optional: include any shared deps if they are produced by the build (often they won't be).
-            find build -maxdepth 5 -type f \( \
-              -name "libixwebsocket.so*" -o \
-              -name "libjsoncpp.so*" -o \
-              -name "libmbedtls.so*" -o \
-              -name "libmbedx509.so*" -o \
-              -name "libmbedcrypto.so*" -o \
-              -name "libz.so*" -o \
-              -name "libzlib.so*" \
-            \) -print -exec cp -P {} artifact/ \; || true
+            # Optional: include shared deps if they are produced by the build (often they won't be).
+            find build -maxdepth 5 -type f \(               -name "libixwebsocket.so*" -o               -name "libjsoncpp.so*" -o               -name "libmbedtls.so*" -o               -name "libmbedx509.so*" -o               -name "libmbedcrypto.so*" -o               -name "libz.so*" -o               -name "libzlib.so*"             \) -print -exec cp -P {} artifact/ \; || true
 
-            # No mbedtls folder needed for shared (leave it empty / absent)
+            # No mbedtls folder needed for shared lane
             rm -rf artifact/mbedtls || true
           fi
 
@@ -79,3 +161,50 @@
         with:
           name: APCpp-linux-${{ matrix.kind }}
           path: artifact/**
+
+  bundle-satisfactory-archipelago-mod:
+    name: Bundle (SatisfactoryArchipelagoMod)
+    runs-on: ubuntu-latest
+    needs: [build-win, build-linux]
+    steps:
+      - name: Download Windows static artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: APCpp-win-static
+          path: in/win
+
+      - name: Download Linux static artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: APCpp-linux-static
+          path: in/linux
+
+      - name: Assemble bundle folder structure
+        run: |
+          set -euo pipefail
+          OUT="SatisfactoryArchipelagoMod/Source/APCpp/lib"
+          mkdir -p "$OUT/Win64/mbedtls" "$OUT/Linux/mbedtls"
+
+          # Windows
+          cp -f in/win/APCpp.lib "$OUT/Win64/"
+          find in/win -maxdepth 1 -type f -name "*.lib" ! -name "APCpp.lib" -print -exec cp -f {} "$OUT/Win64/" \;
+          if [ -d in/win/mbedtls ]; then
+            cp -f in/win/mbedtls/* "$OUT/Win64/mbedtls/" || true
+          fi
+
+          # Linux (static)
+          if [ -f in/linux/libAPCpp.a ]; then
+            cp -f in/linux/libAPCpp.a "$OUT/Linux/"
+          else
+            find in/linux -maxdepth 3 -type f -name "libAPCpp.a" -print -exec cp -f {} "$OUT/Linux/" \;
+          fi
+          find in/linux -maxdepth 1 -type f -name "*.a" ! -name "libAPCpp.a" -print -exec cp -f {} "$OUT/Linux/" \;
+          if [ -d in/linux/mbedtls ]; then
+            cp -f in/linux/mbedtls/* "$OUT/Linux/mbedtls/" || true
+          fi
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SatisfactoryArchipelagoMod-bundle
+          path: SatisfactoryArchipelagoMod/**
