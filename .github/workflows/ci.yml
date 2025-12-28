@@ -68,31 +68,6 @@ jobs:
           name: APCpp-win-${{ matrix.kind }}
           path: artifact/**
 
-  build-msys:
-    name: Build (MSYS)
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: git mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake unzip make
-      - name: CMake configure (MSYS)
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DWIN32=1 -DMSYS=1 -G"MSYS Makefiles"
-      - name: Build (MSYS)
-        run: |
-          cd build
-          cmake --build .
-
   build-linux:
     name: Build (Linux, ${{ matrix.kind }})
     runs-on: ubuntu-latest
