@@ -4,17 +4,28 @@ project(APCpp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+# Build APCpp as STATIC by default, but allow SHARED/DLL builds when requested.
+option(APCPP_BUILD_SHARED "Build APCpp as a shared library (DLL on Windows)" OFF)
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_library(APCpp STATIC 
-    Archipelago.cpp 
+set(_APCPP_LIBTYPE STATIC)
+if (APCPP_BUILD_SHARED)
+    set(_APCPP_LIBTYPE SHARED)
+endif()
+
+add_library(APCpp ${_APCPP_LIBTYPE} Archipelago.cpp 
     Archipelago_DataStorageSim.cpp
     Archipelago_Gifting.cpp 
     Archipelago_Satisfactory.cpp
     Archipelago.h 
     Archipelago_Satisfactory.h)
 
+
+# Export symbols automatically only when building a DLL on Windows
+if (WIN32 AND APCPP_BUILD_SHARED)
+    set_target_properties(APCpp PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 set_target_properties(APCpp PROPERTIES PUBLIC_HEADER Archipelago.h)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
