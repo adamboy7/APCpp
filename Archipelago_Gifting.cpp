@@ -367,7 +367,7 @@ AP_RequestStatus sendGiftInternal(const AP_Gift& gift) {
         giftVal["id"] = id.str();
     }
     giftVal["item_name"] = gift.ItemName;
-    giftVal["amount"] = gift.Amount;
+    giftVal["amount"] = static_cast<Json::UInt64>(gift.Amount);
     if (gift.ItemValue > 0) giftVal["item_value"] = gift.ItemValue;
     giftVal["traits"] = Json::arrayValue;
     for (const AP_GiftTrait& trait : gift.Traits) {
