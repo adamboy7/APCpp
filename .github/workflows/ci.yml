@@ -1,6 +1,5 @@
 name: CI
 
-# Trigger this workflow on push or pull request
 on: [push, pull_request]
 
 jobs:
@@ -15,54 +14,62 @@ jobs:
             shared: OFF
           - kind: shared
             shared: ON
+
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
-    - name: CMake configure (default version)
-      run: |
-        mkdir build
-        cd build
-        cmake -G "Visual Studio 17 2022" -A Win32 `
-              -DCMAKE_BUILD_TYPE=Release `
-              -DAPCPP_BUILD_SHARED=${{ matrix.shared }} ..
-    - name: Build (default version)
-      run: |
-        cd build
-        cmake --build . --config Release
+      - name: CMake configure (MSVC)
+        run: |
+          mkdir build
+          cd build
+          cmake -G "Visual Studio 17 2022" -A Win32 `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DAPCPP_BUILD_SHARED=${{ matrix.shared }} ..
 
-    - name: Create Artifact Folder
-      shell: pwsh
-      run: |
-        New-Item -ItemType Directory -Force artifact | Out-Null
-        New-Item -ItemType Directory -Force artifact/mbedtls | Out-Null
+      - name: Build (MSVC)
+        run: |
+          cd build
+          cmake --build . --config Release
 
-        # APCpp output
-        Copy-Item build/Release/APCpp.lib artifact -Force
-        if ("${{ matrix.shared }}" -eq "ON") {
-          $dll = Get-ChildItem -Path build -Recurse -File -Filter "APCpp.dll" |
+      - name: Create Artifact Folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          New-Item -ItemType Directory -Force artifact/mbedtls | Out-Null
+
+          # --- APCpp output ---
+          Copy-Item build/Release/APCpp.lib artifact -Force
+          if ("${{ matrix.shared }}" -eq "ON") {
+            $dll = Get-ChildItem -Path build -Recurse -File -Filter "APCpp.dll" |
+              Where-Object { $_.FullName -match "\\Release\\" } |
+              Select-Object -First 1
+            if (-not $dll) { throw "APCpp.dll not found under build/ (shared build requested)." }
+            Copy-Item $dll.FullName artifact -Force
+          }
+
+          # --- mbedTLS outputs ---
+          $mbeds = Get-ChildItem -Path build -Recurse -File -Include "mbedtls*.lib","mbedx509*.lib","mbedcrypto*.lib" |
             Where-Object { $_.FullName -match "\\Release\\" } |
-            Select-Object -First 1
-          if (-not $dll) { throw "APCpp.dll not found under build/ (shared build requested)." }
-          Copy-Item $dll.FullName artifact -Force
-        }
+            Select-Object -Unique
+          foreach ($f in $mbeds) { Copy-Item $f.FullName artifact/mbedtls -Force }
 
-        # mbedTLS outputs (built on Windows because USE_TLS is ON)
-        $mbeds = Get-ChildItem -Path build -Recurse -File -Include "mbedtls*.lib","mbedx509*.lib","mbedcrypto*.lib" |
-          Where-Object { $_.FullName -match "\\Release\\" } |
-          Select-Object -Unique
-        foreach ($f in $mbeds) { Copy-Item $f.FullName artifact/mbedtls -Force }
+          # --- Extra dependency libs for SatisfactoryArchipelagoMod ---
+          # (IXWebSocket, JsonCpp, zlib, etc.)
+          $extras = Get-ChildItem -Path build -Recurse -File -Include "ixwebsocket*.lib","jsoncpp*.lib","jsoncpp_object*.lib","zlib*.lib","zs*.lib" |
+            Where-Object { $_.FullName -match "\\Release\\" } |
+            Select-Object -Unique
+          foreach ($f in $extras) { Copy-Item $f.FullName artifact -Force }
 
-    - name: Create Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: APCpp-win-${{ matrix.kind }}
-        path: |
-          artifact/**
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: APCpp-win-${{ matrix.kind }}
+          path: artifact/**
 
   build-msys:
-    name: Build (MSYS)
+    name: Build (MSYS check)
     runs-on: windows-latest
     defaults:
       run:
@@ -87,7 +94,7 @@ jobs:
           cmake --build .
 
   build-linux:
-    name: Build (Linux)
+    name: Build (Linux static)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,7 +106,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config
 
-      - name: CMake configure (Release, static + mbedtls)
+      - name: CMake configure (Release, static + bundled mbedtls)
         run: |
           mkdir -p build
           cd build
@@ -112,24 +119,27 @@ jobs:
 
       - name: Create Artifact Folder
         run: |
+          set -euo pipefail
           mkdir -p artifact/mbedtls
+
           # APCpp (static)
           if [ -f build/libAPCpp.a ]; then
             cp build/libAPCpp.a artifact/
           else
-            # CMake generators can vary; fall back to search
-            find build -maxdepth 3 -type f -name "libAPCpp.a" -print -exec cp {} artifact/ \;
+            find build -maxdepth 5 -type f -name "libAPCpp.a" -print -exec cp {} artifact/ \;
           fi
 
-          # mbedTLS static libs (we force USE_MBED_TLS=ON above)
+          # mbedTLS static libs
           find build -type f \( -name "libmbedtls*.a" -o -name "libmbedx509*.a" -o -name "libmbedcrypto*.a" \) -print -exec cp {} artifact/mbedtls/ \;
 
-      - name: Create Build Artifact
+          # Extra dependency libs for SatisfactoryArchipelagoMod (IXWebSocket / JsonCpp / zlib)
+          find build -type f \( -name "libixwebsocket*.a" -o -name "libjsoncpp*.a" -o -name "libz*.a" -o -name "libzlib*.a" \) -print -exec cp {} artifact/ \;
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: APCpp-linux-static
-          path: |
-            artifact/**
+          path: artifact/**
 
   bundle-satisfactory-archipelago-mod:
     name: Bundle (SatisfactoryArchipelagoMod)
@@ -156,18 +166,18 @@ jobs:
 
           # Windows
           cp -f in/win/APCpp.lib "$OUT/Win64/"
+          find in/win -maxdepth 1 -type f -name "*.lib" ! -name "APCpp.lib" -print -exec cp -f {} "$OUT/Win64/" \;
           if [ -d in/win/mbedtls ]; then
             cp -f in/win/mbedtls/* "$OUT/Win64/mbedtls/" || true
           fi
 
           # Linux
-          # Keep the default static library name from CMake: libAPCpp.a
           if [ -f in/linux/libAPCpp.a ]; then
             cp -f in/linux/libAPCpp.a "$OUT/Linux/"
           else
-            # fall back if pathing differs
-            find in/linux -maxdepth 2 -type f -name "libAPCpp.a" -print -exec cp -f {} "$OUT/Linux/" \;
+            find in/linux -maxdepth 3 -type f -name "libAPCpp.a" -print -exec cp -f {} "$OUT/Linux/" \;
           fi
+          find in/linux -maxdepth 1 -type f -name "*.a" ! -name "libAPCpp.a" -print -exec cp -f {} "$OUT/Linux/" \;
           if [ -d in/linux/mbedtls ]; then
             cp -f in/linux/mbedtls/* "$OUT/Linux/mbedtls/" || true
           fi
@@ -176,22 +186,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SatisfactoryArchipelagoMod-bundle
-          path: |
-            SatisfactoryArchipelagoMod/**
-
-  build-mac:
-    name: Build (macOS)
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-      - name: CMake configure
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-      - name: Build
-        run: |
-          cd build
-          cmake --build .
+          path: SatisfactoryArchipelagoMod/**
