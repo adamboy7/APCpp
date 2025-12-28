@@ -4,8 +4,12 @@ on: [push, pull_request]
 
 jobs:
   build-win:
-    name: Build (windows-latest, ${{ matrix.kind }})
-    runs-on: windows-latest
+    name: Build (windows-self-hosted, ${{ matrix.kind }})
+    runs-on: [self-hosted, windows, x64]
+    # NOTE: This job must run on a self-hosted Windows runner that has the same MSVC toolset as your
+    # Satisfactory/UnrealBuildTool environment (e.g. v143 14.34.* for current SML/UE fork). GitHub-hosted
+    # runners move forward (e.g. MSVC 14.4x), which can produce .lib files that won't link against the older
+    # toolset used by SML/UE.
     strategy:
       fail-fast: false
       matrix:
@@ -20,25 +24,12 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # Install a VS toolset that matches UnrealBuildTool's MSVC minor version (e.g. 14.34),
-      # to avoid STL/CRT link mismatches (unresolved __std_* / _Thrd_* / _Cnd_* symbols).
-      - name: Install VS Build Tools (from .vsconfig)
-        shell: pwsh
-        run: |
-          choco install visualstudio2022buildtools --yes --no-progress --package-parameters "--wait --quiet --norestart --config $env:GITHUB_WORKSPACE\.github\vsconfig\v143-14.34.vsconfig"
-
-      # Ensure the developer command prompt environment is set up and the requested toolset is used.
-      - name: Setup MSVC dev cmd (v143 14.34)
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-          toolset: 14.34
-
       - name: CMake configure (MSVC)
         run: |
           mkdir build
           cd build
-          cmake -G "Visual Studio 17 2022" -A x64 `
+          cmake -G "Visual Studio 17 2022" -A Win32 `
+                -DCMAKE_BUILD_TYPE=Release `
                 -DAPCPP_BUILD_SHARED=${{ matrix.shared }} ..
 
       - name: Build (MSVC)
